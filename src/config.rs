@@ -86,4 +86,62 @@ impl TelemetryConfig {
             proj_dirs.config_dir().join("telemetry.json")
         }
     }
+
+    /// Updates the user's telemetry consent and persists the choice
+    pub fn update_consent(&mut self, enabled: bool) -> TelemetryResult<()> {
+        self.enabled = enabled;
+
+        // Only save if we have a config path
+        if let Some(path) = &self.config_path {
+            let file = std::fs::File::create(path)
+                .map_err(|e| TelemetryError::ConfigError(
+                    format!("Failed to update telemetry consent: {}", e)
+                ))?;
+            
+            serde_json::to_writer_pretty(file, self)
+                .map_err(|e| TelemetryError::ConfigError(
+                    format!("Failed to save telemetry consent: {}", e)
+                ))?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn setup() -> (TempDir, PathBuf) {
+        println!("Hello");
+        let temp_dir = TempDir::new().unwrap();
+        println!("{:#?}", temp_dir);
+        let config_path = temp_dir.path().join("telemetry.json");
+        println!("{:#?}", config_path);
+        (temp_dir, config_path)
+    }
+
+    #[test]
+    fn test_config_creation() {
+        let (_temp_dir, config_path) = setup();
+        let config = TelemetryConfig::new("test-app", Some(config_path.clone())).unwrap();
+        assert!(!config.enabled); // Should be disabled in tests
+    }
+
+    #[test]
+    fn test_update_consent() {
+        let (_temp_dir, config_path) = setup();
+        
+        // Create config with default settings
+        let mut config = TelemetryConfig::new("test-app", Some(config_path.clone())).unwrap();
+        
+        // Update consent
+        config.update_consent(true).unwrap();
+        assert!(config.enabled);
+
+        // Verify persistence by loading config again
+        let loaded_config = TelemetryConfig::new("test-app", Some(config_path)).unwrap();
+        assert!(loaded_config.enabled);
+    }
 }

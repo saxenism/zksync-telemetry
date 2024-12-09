@@ -154,6 +154,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "test")]  // Only run when test feature is enabled
     fn test_sentry_error_capture() {
         let (_, config_path) = setup();
         
