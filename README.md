@@ -1,4 +1,4 @@
-# zkSync Telemetry Library
+# ZKsync Telemetry Library
 
 A comprehensive telemetry solution for zkSync CLI applications that combines PostHog analytics and Sentry error tracking while maintaining user privacy and consent.
 
