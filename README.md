@@ -149,7 +149,87 @@ fn update_telemetry_settings(enabled: bool) -> Result<(), Box<dyn Error>> {
 }
 ```
 
-### 7. Important Notes
+### 7. API Key Management
+
+The library provides flexible management of PostHog and Sentry API keys through the `TelemetryKeys` structure. Both keys are optional, but telemetry features will be disabled for services without valid keys.
+
+#### Default Usage
+
+```rust
+use zksync_telemetry::{Telemetry, TelemetryKeys};
+
+fn main() {
+    // TelemetryKeys::new() now returns Result
+    let keys = TelemetryKeys::new()
+        .expect("Failed to initialize telemetry keys");
+        
+    let telemetry = Telemetry::new(
+        "your-app-name",
+        keys.posthog_key,    // Now Option<String>
+        keys.sentry_dsn,     // Now Option<String>
+        None,
+    ).expect("Failed to initialize telemetry");
+}
+```
+
+#### Environment Variables
+The library looks for and validates the following environment variables:
+
+`ANVIL_POSTHOG_KEY`: PostHog API key (must start with 'phc_')
+`ANVIL_SENTRY_DSN`: Sentry DSN (must be a valid Sentry URL)
+
+Example:
+```bash
+# Valid PostHog key starting with 'phc_'
+export ANVIL_POSTHOG_KEY="phc_your_actual_posthog_key"
+# Valid Sentry DSN URL
+export ANVIL_SENTRY_DSN="https://your_key@sentry.io/your_project"
+./your-application
+```
+
+#### Custom Keys
+
+You can also provide custom keys programmatically:
+```rust
+// Both keys are now optional
+let keys = TelemetryKeys::with_keys(
+    Some("phc_your_posthog_key".to_string()),
+    Some("https://your_key@sentry.io/your_project".to_string()),
+).expect("Invalid keys provided");
+
+// Or with only PostHog
+let posthog_only = TelemetryKeys::with_keys(
+    Some("phc_your_posthog_key".to_string()),
+    None,
+).expect("Invalid PostHog key");
+```
+
+#### Key Validation
+The library validates keys before accepting them:
+
++ PostHog keys must start with phc_
++ Sentry DSNs must be valid URLs starting with 'http' and containing '@sentry.io'
++ Invalid keys will result in an error
++ Missing keys will disable corresponding features
+
+#### Security Considerations
+
++ No default keys are provided - valid keys must be supplied
++ Keys can be rotated by using environment variables
++ No sensitive information is collected or transmitted
++ Different keys can be used for different environments (development, staging, production)
++ The library will function without keys, but telemetry will be disabled
+
+#### Best Practices
+
++ Store keys securely using environment variables
++ Rotate keys periodically
++ Use different keys for different environments
++ Monitor key usage through PostHog/Sentry dashboards
++ Consider disabling telemetry in development/test environments
++ Validate key format before using them
+
+### 8. Important Notes
 
 #### Configuration Storage
 - Unix/Linux: `$XDG_CONFIG_HOME/.<app_name>/telemetry.json`
